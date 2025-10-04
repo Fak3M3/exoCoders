@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from typing import List, Dict, Any
 
-class ModelPredictor:
+class ModeloPredictor:
     def __init__(self, model_path: str):
         """Inicializar el predictor cargando el modelo"""
         self.model = None
