@@ -108,56 +108,6 @@ def get_model_metrics() -> Dict[str, Any]:
 def apply_full_preprocessing_pipeline(df: pd.DataFrame) -> np.ndarray:
     """
     Apply full preprocessing pipeline identical to main.py
+    This function should be implemented in the calling module
     """
-    try:
-        print("🔄 Applying full preprocessing pipeline...")
-        
-        # Importar clases locales desde app.py
-        from app import APIDataPreprocessor, APIFeatureEngineer, Config
-        
-        # Cargar componentes entrenados
-        model_dir = Path("model")
-        
-        # 1. Cargar preprocessor entrenado
-        if (model_dir / "preprocessor.pkl").exists():
-            trained_preprocessor = joblib.load(model_dir / "preprocessor.pkl")
-            preprocessor = APIDataPreprocessor(trained_preprocessor)
-        else:
-            preprocessor = APIDataPreprocessor()
-        
-        # 2. Cargar feature engineer entrenado
-        if (model_dir / "feature_engineer.pkl").exists():
-            feature_engineer = joblib.load(model_dir / "feature_engineer.pkl")
-        else:
-            feature_engineer = APIFeatureEngineer()
-        
-        # 3. Cargar características seleccionadas
-        if (model_dir / "selected_features.csv").exists():
-            selected_features_df = pd.read_csv(model_dir / "selected_features.csv")
-            selected_features = selected_features_df['feature'].tolist()
-        else:
-            selected_features = None
-        
-        # 4. Aplicar pipeline
-        print("🧹 Step 1: Data cleaning...")
-        cleaned_data = preprocessor.clean_data(df)
-        
-        print("⚙️ Step 2: Feature engineering...")
-        engineered_features = feature_engineer.create_all_features(cleaned_data)
-        
-        print("🎯 Step 3: Feature selection...")
-        if selected_features:
-            # Usar solo las características seleccionadas durante el entrenamiento
-            available_features = [f for f in selected_features if f in engineered_features.columns]
-            final_features = engineered_features[available_features]
-            print(f"✅ Selected {len(available_features)}/{len(selected_features)} features")
-        else:
-            final_features = engineered_features
-            print(f"⚠️ No feature selection applied - using all {final_features.shape[1]} features")
-        
-        print(f"✅ Pipeline completed. Final shape: {final_features.shape}")
-        return final_features.values
-        
-    except Exception as e:
-        print(f"❌ Pipeline error: {e}")
-        raise e
+    raise NotImplementedError("This function should be implemented in app.py")

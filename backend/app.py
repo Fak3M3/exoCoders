@@ -15,7 +15,68 @@ from scipy import stats
 from scipy.fft import fft
 from scipy.signal import find_peaks
 from src.predict import ModeloPredictor
-from src.utils import setup_logging, validate_features, format_prediction_response, log_prediction, health_check_model, apply_full_preprocessing_pipeline, get_model_metrics
+from src.utils import setup_logging, validate_features, format_prediction_response, log_prediction, health_check_model, get_model_metrics
+
+# Agregar después de los imports y antes de cualquier función
+# Crear aliases para compatibilidad con archivos pickle
+DataPreprocessor = None  # Definir temporalmente
+FeatureEngineer = None   # Definir temporalmente
+
+# Las clases reales se definen más abajo, así que haremos el alias después
+
+def apply_full_preprocessing_pipeline(df: pd.DataFrame) -> np.ndarray:
+    """
+    Apply full preprocessing pipeline identical to main.py
+    """
+    try:
+        print("🔄 Applying full preprocessing pipeline...")
+        
+        # Cargar componentes entrenados
+        model_dir = Path("model")
+        
+        # 1. Cargar preprocessor entrenado
+        if (model_dir / "preprocessor.pkl").exists():
+            trained_preprocessor = joblib.load(model_dir / "preprocessor.pkl")
+            preprocessor_instance = APIDataPreprocessor(trained_preprocessor)
+        else:
+            preprocessor_instance = APIDataPreprocessor()
+        
+        # 2. Cargar feature engineer entrenado
+        if (model_dir / "feature_engineer.pkl").exists():
+            feature_engineer_instance = joblib.load(model_dir / "feature_engineer.pkl")
+        else:
+            feature_engineer_instance = APIFeatureEngineer()
+        
+        # 3. Cargar características seleccionadas
+        if (model_dir / "selected_features.csv").exists():
+            selected_features_df = pd.read_csv(model_dir / "selected_features.csv")
+            selected_features_list = selected_features_df['feature'].tolist()
+        else:
+            selected_features_list = None
+        
+        # 4. Aplicar pipeline
+        print("🧹 Step 1: Data cleaning...")
+        cleaned_data = preprocessor_instance.clean_data(df)
+        
+        print("⚙️ Step 2: Feature engineering...")
+        engineered_features = feature_engineer_instance.create_all_features(cleaned_data)
+        
+        print("🎯 Step 3: Feature selection...")
+        if selected_features_list:
+            # Usar solo las características seleccionadas durante el entrenamiento
+            available_features = [f for f in selected_features_list if f in engineered_features.columns]
+            final_features = engineered_features[available_features]
+            print(f"✅ Selected {len(available_features)}/{len(selected_features_list)} features")
+        else:
+            final_features = engineered_features
+            print(f"⚠️ No feature selection applied - using all {final_features.shape[1]} features")
+        
+        print(f"✅ Pipeline completed. Final shape: {final_features.shape}")
+        return final_features.values
+        
+    except Exception as e:
+        print(f"❌ Pipeline error: {e}")
+        raise e
 
 app = Flask(__name__)
 CORS(app)
@@ -332,6 +393,16 @@ class APIFeatureEngineer:
         print(f"✅ Feature engineering completed. Total features: {all_features.shape[1]}")
         return all_features
 
+# Después de definir APIDataPreprocessor y APIFeatureEngineer
+# Crear aliases para compatibilidad con pickle
+DataPreprocessor = APIDataPreprocessor
+FeatureEngineer = APIFeatureEngineer
+
+# Agregar al namespace global
+import sys
+sys.modules[__name__].DataPreprocessor = APIDataPreprocessor
+sys.modules[__name__].FeatureEngineer = APIFeatureEngineer
+
 # ✅ ACTUALIZAR líneas 390-400 del modelo:
 try:
     # Verificar que el modelo LightGBM existe
@@ -352,7 +423,7 @@ except FileNotFoundError as e:
 def home():
     """Endpoint raíz para verificar que la API está funcionando"""
     return jsonify({
-        "message": "ExoCoders ML API - Predicción con Random Forest",
+        "message": "ExoCoders ML API - Predicción con LightGBM",
         "status": "operacional",
         "version": "1.0.0",
         "endpoints": {
@@ -431,7 +502,7 @@ def health():
     """Endpoint de salud - solo modelo real"""
     try:
         # Verificar estado del modelo
-        model_status = health_check_model("model/random_forest_model.pkl")
+        model_status = health_check_model("model/lightgbm_model.pkl")
         
         # Verificar estado del predictor
         predictor_info = predictor.get_model_info() if predictor else {"error": "Predictor no cargado"}
