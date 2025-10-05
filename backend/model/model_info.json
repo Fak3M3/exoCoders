@@ -1,0 +1,18 @@
+{
+  "model_type": "LightGBM",
+  "accuracy": 0.9990176817288802,
+  "precision": 0.875,
+  "recall": 1.0,
+  "f1": 0.9333333333333333,
+  "auc": 1.0,
+  "avg_precision": 1.0,
+  "features_count": 200,
+  "original_features": 3197,
+  "final_features": 200,
+  "training_samples": 5087,
+  "test_samples": 1018,
+  "class_distribution": {
+    "no_exoplanet": 5050,
+    "exoplanet": 37
+  }
+}
